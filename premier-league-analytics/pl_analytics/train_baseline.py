@@ -13,20 +13,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from .data import load_matches
 from .evaluate import CLASSES, bookmaker_probs, summarise
-from .features import add_form_features, feature_columns
+from .split import load_split
 
 
 def run(raw_dir=Path("data/raw"), out_dir=Path("outputs"), test_fraction=0.2, window=5) -> dict:
-    matches = load_matches(raw_dir)
-    data = add_form_features(matches, window=window)
-    feats = feature_columns(data)
-    data = data.dropna(subset=feats).reset_index(drop=True)
-
-    # Chronological split: train on the past, test on the most recent matches.
-    cut = int(len(data) * (1 - test_fraction))
-    train, test = data.iloc[:cut], data.iloc[cut:]
+    train, test, feats = load_split(raw_dir, test_fraction, window)
 
     model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))
     model.fit(train[feats], train["FTR"])
